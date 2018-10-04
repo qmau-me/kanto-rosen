@@ -8,41 +8,50 @@
  */
 
 /* jshint node: true, devel: true */
-'use strict';
+"use strict";
 
-const
-  bodyParser = require('body-parser'),
-  config = require('config'),
-  crypto = require('crypto'),
-  express = require('express'),
-  https = require('https'),
-  request = require('request');
-
+const bodyParser = require("body-parser"),
+  config = require("config"),
+  crypto = require("crypto"),
+  express = require("express"),
+  https = require("https"),
+  request = require("request");
 
 var app = express();
-var cheerio = require('cheerio');
-var mongoClient = require('mongodb').MongoClient;
-var CronJob = require('cron').CronJob;
+var cheerio = require("cheerio");
+var mongoClient = require("mongodb").MongoClient;
+var CronJob = require("cron").CronJob;
 var url = "mongodb://localhost:27017/";
-app.set('port', process.env.PORT || 5000);
-app.set('view engine', 'ejs');
+app.set("port", process.env.PORT || 5000);
+app.set("view engine", "ejs");
 app.use(bodyParser.json({ verify: verifyRequestSignature }));
-app.use(express.static('public'));
+app.use(express.static("public"));
 
-
-new CronJob('1 * * * * *', function() {
-    mongoClient.connect(url, function(err, db) {
+new CronJob(
+  "1 * * * * *",
+  function() {
+    mongoClient.connect(
+      url,
+      function(err, db) {
         if (err) throw err;
         var dbo = db.db("chatbot");
-        dbo.collection("rosen").find({}).toArray(function(err, result) {
+        dbo
+          .collection("rosen")
+          .find({})
+          .toArray(function(err, result) {
             if (err) throw err;
-            result.forEach(function (res) {
-                parseInfo(res.userId, res.subcribeLine, 0);
+            result.forEach(function(res) {
+              parseInfo(res.userId, res.subcribeLine, 0);
             });
             db.close();
-        });
-    });
-}, null, true, 'Asia/Tokyo');
+          });
+      }
+    );
+  },
+  null,
+  true,
+  "Asia/Tokyo"
+);
 /*
  * Be sure to setup your config values before running this code. You can
  * set them using environment variables or modifying the config file in /config.
@@ -50,25 +59,25 @@ new CronJob('1 * * * * *', function() {
  */
 
 // App Secret can be retrieved from the App Dashboard
-const APP_SECRET = (process.env.MESSENGER_APP_SECRET) ?
-  process.env.MESSENGER_APP_SECRET :
-  config.get('appSecret');
+const APP_SECRET = process.env.MESSENGER_APP_SECRET
+  ? process.env.MESSENGER_APP_SECRET
+  : config.get("appSecret");
 
 // Arbitrary value used to validate a webhook
-const VALIDATION_TOKEN = (process.env.MESSENGER_VALIDATION_TOKEN) ?
-  (process.env.MESSENGER_VALIDATION_TOKEN) :
-  config.get('validationToken');
+const VALIDATION_TOKEN = process.env.MESSENGER_VALIDATION_TOKEN
+  ? process.env.MESSENGER_VALIDATION_TOKEN
+  : config.get("validationToken");
 
 // Generate a page access token for your page from the App Dashboard
-const PAGE_ACCESS_TOKEN = (process.env.MESSENGER_PAGE_ACCESS_TOKEN) ?
-  (process.env.MESSENGER_PAGE_ACCESS_TOKEN) :
-  config.get('pageAccessToken');
+const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_ACCESS_TOKEN
+  ? process.env.MESSENGER_PAGE_ACCESS_TOKEN
+  : config.get("pageAccessToken");
 
 // URL where the app is running (include protocol). Used to point to scripts and
 // assets located at this address.
-const SERVER_URL = (process.env.SERVER_URL) ?
-  (process.env.SERVER_URL) :
-  config.get('serverURL');
+const SERVER_URL = process.env.SERVER_URL
+  ? process.env.SERVER_URL
+  : config.get("serverURL");
 
 if (!(APP_SECRET && VALIDATION_TOKEN && PAGE_ACCESS_TOKEN && SERVER_URL)) {
   console.error("Missing config values");
@@ -80,17 +89,18 @@ if (!(APP_SECRET && VALIDATION_TOKEN && PAGE_ACCESS_TOKEN && SERVER_URL)) {
  * setup is the same token used here.
  *
  */
-app.get('/webhook', function(req, res) {
-  if (req.query['hub.mode'] === 'subscribe' &&
-      req.query['hub.verify_token'] === VALIDATION_TOKEN) {
+app.get("/webhook", function(req, res) {
+  if (
+    req.query["hub.mode"] === "subscribe" &&
+    req.query["hub.verify_token"] === VALIDATION_TOKEN
+  ) {
     console.log("Validating webhook");
-    res.status(200).send(req.query['hub.challenge']);
+    res.status(200).send(req.query["hub.challenge"]);
   } else {
     console.error("Failed validation. Make sure the validation tokens match.");
     res.sendStatus(403);
   }
 });
-
 
 /*
  * All callbacks for Messenger are POST-ed. They will be sent to the same
@@ -99,11 +109,11 @@ app.get('/webhook', function(req, res) {
  * https://developers.facebook.com/docs/messenger-platform/product-overview/setup#subscribe_app
  *
  */
-app.post('/webhook', function (req, res) {
+app.post("/webhook", function(req, res) {
   var data = req.body;
 
   // Make sure this is a page subscription
-  if (data.object == 'page') {
+  if (data.object == "page") {
     // Iterate over each entry
     // There may be multiple if batched
     data.entry.forEach(function(pageEntry) {
@@ -125,7 +135,10 @@ app.post('/webhook', function (req, res) {
         } else if (messagingEvent.account_linking) {
           receivedAccountLink(messagingEvent);
         } else {
-          console.log("Webhook received unknown messagingEvent: ", messagingEvent);
+          console.log(
+            "Webhook received unknown messagingEvent: ",
+            messagingEvent
+          );
         }
       });
     });
@@ -143,7 +156,7 @@ app.post('/webhook', function (req, res) {
  * (sendAccountLinking) is pointed to this URL.
  *
  */
-app.get('/authorize', function(req, res) {
+app.get("/authorize", function(req, res) {
   var accountLinkingToken = req.query.account_linking_token;
   var redirectURI = req.query.redirect_uri;
 
@@ -154,7 +167,7 @@ app.get('/authorize', function(req, res) {
   // Redirect users to this URI on successful login
   var redirectURISuccess = redirectURI + "&authorization_code=" + authCode;
 
-  res.render('authorize', {
+  res.render("authorize", {
     accountLinkingToken: accountLinkingToken,
     redirectURI: redirectURI,
     redirectURISuccess: redirectURISuccess
@@ -177,13 +190,14 @@ function verifyRequestSignature(req, res, buf) {
     // error.
     console.error("Couldn't validate the signature.");
   } else {
-    var elements = signature.split('=');
+    var elements = signature.split("=");
     var method = elements[0];
     var signatureHash = elements[1];
 
-    var expectedHash = crypto.createHmac('sha1', APP_SECRET)
-                        .update(buf)
-                        .digest('hex');
+    var expectedHash = crypto
+      .createHmac("sha1", APP_SECRET)
+      .update(buf)
+      .digest("hex");
 
     if (signatureHash != expectedHash) {
       throw new Error("Couldn't validate the request signature.");
@@ -211,9 +225,14 @@ function receivedAuthentication(event) {
   // plugin.
   var passThroughParam = event.optin.ref;
 
-  console.log("Received authentication for user %d and page %d with pass " +
-    "through param '%s' at %d", senderID, recipientID, passThroughParam,
-    timeOfAuth);
+  console.log(
+    "Received authentication for user %d and page %d with pass " +
+      "through param '%s' at %d",
+    senderID,
+    recipientID,
+    passThroughParam,
+    timeOfAuth
+  );
 
   // When an authentication is received, we'll send a message back to the sender
   // to let them know it was successful.
@@ -240,8 +259,12 @@ function receivedMessage(event) {
   var timeOfMessage = event.timestamp;
   var message = event.message;
 
-  console.log("Received message for user %d and page %d at %d with message:",
-    senderID, recipientID, timeOfMessage);
+  console.log(
+    "Received message for user %d and page %d at %d with message:",
+    senderID,
+    recipientID,
+    timeOfMessage
+  );
   console.log(JSON.stringify(message));
 
   var isEcho = message.is_echo;
@@ -256,78 +279,89 @@ function receivedMessage(event) {
 
   if (isEcho) {
     // Just logging message echoes to console
-    console.log("Received echo for message %s and app %d with metadata %s",
-      messageId, appId, metadata);
+    console.log(
+      "Received echo for message %s and app %d with metadata %s",
+      messageId,
+      appId,
+      metadata
+    );
     return;
   } else if (quickReply) {
     var quickReplyPayload = quickReply.payload;
-    console.log("Quick reply for message %s with payload %s",
-      messageId, quickReplyPayload);
+    console.log(
+      "Quick reply for message %s with payload %s",
+      messageId,
+      quickReplyPayload
+    );
 
     sendTextMessage(senderID, "Quick reply tapped");
     return;
   }
 
   if (messageText) {
-
     // If we receive a text message, check to see if it matches any special
     // keywords and send back the corresponding example. Otherwise, just echo
     // the text we received.
-    switch (messageText.replace(/[^\w\s]/gi, '').trim().toLowerCase()) {
-      case 'hello':
-      case 'hi':
+    switch (
+      messageText
+        .replace(/[^\w\s]/gi, "")
+        .trim()
+        .toLowerCase()
+    ) {
+      case "hello":
+      case "hi":
         sendHiMessage(senderID);
         break;
 
-      case 'image':
+      case "image":
         requiresServerURL(sendImageMessage, [senderID]);
         break;
 
-      case 'gif':
+      case "gif":
         requiresServerURL(sendGifMessage, [senderID]);
         break;
 
-      case 'audio':
+      case "audio":
         requiresServerURL(sendAudioMessage, [senderID]);
         break;
 
-      case 'video':
+      case "video":
         requiresServerURL(sendVideoMessage, [senderID]);
         break;
 
-      case 'file':
+      case "file":
         requiresServerURL(sendFileMessage, [senderID]);
         break;
 
-      case 'button':
+      case "button":
         sendButtonMessage(senderID);
         break;
 
-      case 'generic':
+      case "generic":
         requiresServerURL(sendGenericMessage, [senderID]);
         break;
 
-      case 'receipt':
+      case "receipt":
         requiresServerURL(sendReceiptMessage, [senderID]);
         break;
 
-      case 'quick reply':
+      case "quick reply":
         sendQuickReply(senderID);
         break;
 
-      case 'read receipt':
+      case "read receipt":
         sendReadReceipt(senderID);
         break;
 
-      case 'typing on':
+      case "typing on":
         sendTypingOn(senderID);
         break;
 
-      case 'typing off':
+      case "typing off":
         sendTypingOff(senderID);
         break;
 
-      case 'account linking':
+      case "account linking":
         requiresServerURL(sendAccountLinking, [senderID]);
         break;
 
@@ -339,73 +373,123 @@ function receivedMessage(event) {
   }
 }
 
-function parseInfo(senderID, subcribeLine , msgFlg) {
-    request('https://transit.yahoo.co.jp/traininfo/area/4/', function (error, response, html) {
-        if (!error && response.statusCode == 200) {
-            var found = false;
-            var $ = cheerio.load(html);
-            $('td:nth-child(1)').each(function (idx, elem) {
-                var lineName = elem.children[0].children[0].data;
-                if (lineName.includes(subcribeLine)) {
-                    found = true;
-                    request(elem.children[0].attribs.href, function (error, response, html) {
-                        if (!error && response.statusCode == 200) {
-
-                            var $ = cheerio.load(html);
-                            var lineStatus = $('dt')[0].children[1].data || $('dt')[0].children[2].data;
-                            var lineTrouble = $('#mdServiceStatus p')[0].children[0].data
-                            handleRequest(senderID, lineName, lineStatus, lineTrouble, msgFlg);
-                        }
-                    });
-                }
-            });
-            if (!found){
-                sendTextMessage(senderID, subcribeLine + "の情報がありません。");
+function parseInfo(senderID, subcribeLine, msgFlg) {
+  request("https://transit.yahoo.co.jp/traininfo/area/4/", function(
+    error,
+    response,
+    html
+  ) {
+    if (!error && response.statusCode == 200) {
+      var found = false;
+      var $ = cheerio.load(html);
+      $("td:nth-child(1)").each(function(idx, elem) {
+        var lineName = elem.children[0].children[0].data;
+        if (lineName.includes(subcribeLine)) {
+          found = true;
+          request(elem.children[0].attribs.href, function(
+            error,
+            response,
+            html
+          ) {
+            if (!error && response.statusCode == 200) {
+              var $ = cheerio.load(html);
+              var lineStatus =
+                $("dt")[0].children[1].data || $("dt")[0].children[2].data;
+              var lineTrouble = $("#mdServiceStatus p")[0].children[0].data;
+              handleRequest(
+                senderID,
+                lineName,
+                lineStatus,
+                lineTrouble,
+                msgFlg
+              );
             }
+          });
         }
-    });
+      });
+      if (!found) {
+        sendTextMessage(senderID, subcribeLine + "の情報がありません。");
+      }
+    }
+  });
 }
 
+function handleRequest(senderID, lineName, lineStatus, lineTrouble, msgFlg) {
+  mongoClient.connect(
+    url,
+    function(err, db) {
+      if (err) throw err;
+      var dbo = db.db("chatbot");
+      var query = { userId: senderID, subcribeLine: lineName };
 
-function handleRequest(senderID, lineName, lineStatus, lineTrouble, msgFlg){
-    mongoClient.connect(url, function(err, db) {
-        if (err) throw err;
-        var dbo = db.db("chatbot");
-        var query = { userId: senderID, subcribeLine: lineName };
-
-        dbo.collection("rosen").find(query).toArray(function(err, result) {
-            if (err) throw err;
-            if (result[0] && result[0].lineStatus == lineStatus && result[0].lineTrouble == lineTrouble) {
-                // line info did not change
-                console.log("Did not change");
-                // if user send the msg
-                if (msgFlg == 1){
-                    var msg = '[' + result[0].subcribeLine.toString() + ']: ' + result[0].lineStatus.toString() + '\n' + result[0].lineTrouble.toString();
-                    sendTextMessage(senderID, msg);
-                }
-            } else if (result[0]) {
-                // line info has been changed
-                var newVal = { $set: { lineStatus: lineStatus, lineTrouble: lineTrouble } };
-                dbo.collection("rosen").updateOne(query, newVal, function(err, res) {
-                    if (err) throw err;
-                    console.log(senderID + lineName + " updated");
-                    db.close();
-                });
-                var msg = '[' + lineName.toString() + ']: ' + lineStatus.toString() + '\n' + lineTrouble.toString();
-                sendTextMessage(senderID, msg);
-            } else {
-                // user subcribe to new line
-                var myobj = { userId: senderID, subcribeLine: lineName, lineStatus: lineStatus, lineTrouble: lineTrouble };
-                dbo.collection("rosen").insertOne(myobj, function(err, res) {
-                    if (err) throw err;
-                    console.log(senderID + lineName + "inserted");
-                });
-                var msg = '[' + lineName.toString() + ']: ' + lineStatus.toString() + '\n' + lineTrouble.toString();
-                sendTextMessage(senderID, msg);
+      dbo
+        .collection("rosen")
+        .find(query)
+        .toArray(function(err, result) {
+          if (err) throw err;
+          if (
+            result[0] &&
+            result[0].lineStatus == lineStatus &&
+            result[0].lineTrouble == lineTrouble
+          ) {
+            // line info did not change
+            console.log("Did not change");
+            // if user send the msg
+            if (msgFlg == 1) {
+              var msg =
+                "[" +
+                result[0].subcribeLine.toString() +
+                "]: " +
+                result[0].lineStatus.toString() +
+                "\n" +
+                result[0].lineTrouble.toString();
+              sendTextMessage(senderID, msg);
             }
-            db.close();
+          } else if (result[0]) {
+            // line info has been changed
+            var newVal = {
+              $set: { lineStatus: lineStatus, lineTrouble: lineTrouble }
+            };
+            dbo
+              .collection("rosen")
+              .updateOne(query, newVal, function(err, res) {
+                if (err) throw err;
+                console.log(senderID + lineName + " updated");
+                db.close();
+              });
+            var msg =
+              "[" +
+              lineName.toString() +
+              "]: " +
+              lineStatus.toString() +
+              "\n" +
+              lineTrouble.toString();
+            sendTextMessage(senderID, msg);
+          } else {
+            // user subcribe to new line
+            var myobj = {
+              userId: senderID,
+              subcribeLine: lineName,
+              lineStatus: lineStatus,
+              lineTrouble: lineTrouble
+            };
+            dbo.collection("rosen").insertOne(myobj, function(err, res) {
+              if (err) throw err;
+              console.log(senderID + lineName + "inserted");
+            });
+            var msg =
+              "[" +
+              lineName.toString() +
+              "]: " +
+              lineStatus.toString() +
+              "\n" +
+              lineTrouble.toString();
+            sendTextMessage(senderID, msg);
+          }
+          db.close();
         });
-    });
+    }
+  );
 }
 /*
  * Delivery Confirmation Event
@@ -424,14 +508,15 @@ function receivedDeliveryConfirmation(event) {
 
   if (messageIDs) {
     messageIDs.forEach(function(messageID) {
-      console.log("Received delivery confirmation for message ID: %s",
-        messageID);
+      console.log(
+        "Received delivery confirmation for message ID: %s",
+        messageID
+      );
     });
   }
 
   console.log("All message before %d were delivered.", watermark);
 }
-
 
 /*
  * Postback Event
@@ -449,8 +534,13 @@ function receivedPostback(event) {
   // button for Structured Messages.
   var payload = event.postback.payload;
 
-  console.log("Received postback for user %d and page %d with payload '%s' " +
-    "at %d", senderID, recipientID, payload, timeOfPostback);
+  console.log(
+    "Received postback for user %d and page %d with payload '%s' " + "at %d",
+    senderID,
+    recipientID,
+    payload,
+    timeOfPostback
+  );
 
   // When a postback is called, we'll send a message back to the sender to
   // let them know it was successful
@@ -472,8 +562,11 @@ function receivedMessageRead(event) {
   var watermark = event.read.watermark;
   var sequenceNumber = event.read.seq;
 
-  console.log("Received message read event for watermark %d and sequence " +
-    "number %d", watermark, sequenceNumber);
+  console.log(
+    "Received message read event for watermark %d and sequence " + "number %d",
+    watermark,
+    sequenceNumber
+  );
 }
 
 /*
@@ -491,8 +584,13 @@ function receivedAccountLink(event) {
   var status = event.account_linking.status;
   var authCode = event.account_linking.authorization_code;
 
-  console.log("Received account link event with for user %d with status %s " +
-    "and auth code %s ", senderID, status, authCode);
+  console.log(
+    "Received account link event with for user %d with status %s " +
+      "and auth code %s ",
+    senderID,
+    status,
+    authCode
+  );
 }
 
 /*
@@ -514,7 +612,7 @@ We have static resources like images and videos available to test, but you need 
 Once you've finished these steps, try typing “video” or “image”.
         `
       }
-    }
+    };
 
     callSendAPI(messageData);
   } else {
@@ -536,7 +634,7 @@ Right now, your bot can only respond to a few words. Try out "quick reply", "typ
 For more details on how to create commands, go to https://developers.facebook.com/docs/messenger-platform/reference/send-api.
       `
     }
-  }
+  };
 
   callSendAPI(messageData);
 }
@@ -684,19 +782,23 @@ function sendButtonMessage(recipientId) {
         payload: {
           template_type: "button",
           text: "This is test text",
-          buttons:[{
-            type: "web_url",
-            url: "https://www.oculus.com/en-us/rift/",
-            title: "Open Web URL"
-          }, {
-            type: "postback",
-            title: "Trigger Postback",
-            payload: "DEVELOPER_DEFINED_PAYLOAD"
-          }, {
-            type: "phone_number",
-            title: "Call Phone Number",
-            payload: "+16505551234"
-          }]
+          buttons: [
+            {
+              type: "web_url",
+              url: "https://www.oculus.com/en-us/rift/",
+              title: "Open Web URL"
+            },
+            {
+              type: "postback",
+              title: "Trigger Postback",
+              payload: "DEVELOPER_DEFINED_PAYLOAD"
+            },
+            {
+              type: "phone_number",
+              title: "Call Phone Number",
+              payload: "+16505551234"
+            }
+          ]
         }
       }
     }
@@ -719,35 +821,44 @@ function sendGenericMessage(recipientId) {
         type: "template",
         payload: {
           template_type: "generic",
-          elements: [{
-            title: "rift",
-            subtitle: "Next-generation virtual reality",
-            item_url: "https://www.oculus.com/en-us/rift/",
-            image_url: SERVER_URL + "/assets/rift.png",
-            buttons: [{
-              type: "web_url",
-              url: "https://www.oculus.com/en-us/rift/",
-              title: "Open Web URL"
-            }, {
-              type: "postback",
-              title: "Call Postback",
-              payload: "Payload for first bubble",
-            }],
-          }, {
-            title: "touch",
-            subtitle: "Your Hands, Now in VR",
-            item_url: "https://www.oculus.com/en-us/touch/",
-            image_url: SERVER_URL + "/assets/touch.png",
-            buttons: [{
-              type: "web_url",
-              url: "https://www.oculus.com/en-us/touch/",
-              title: "Open Web URL"
-            }, {
-              type: "postback",
-              title: "Call Postback",
-              payload: "Payload for second bubble",
-            }]
-          }]
+          elements: [
+            {
+              title: "rift",
+              subtitle: "Next-generation virtual reality",
+              item_url: "https://www.oculus.com/en-us/rift/",
+              image_url: SERVER_URL + "/assets/rift.png",
+              buttons: [
+                {
+                  type: "web_url",
+                  url: "https://www.oculus.com/en-us/rift/",
+                  title: "Open Web URL"
+                },
+                {
+                  type: "postback",
+                  title: "Call Postback",
+                  payload: "Payload for first bubble"
+                }
+              ]
+            },
+            {
+              title: "touch",
+              subtitle: "Your Hands, Now in VR",
+              item_url: "https://www.oculus.com/en-us/touch/",
+              image_url: SERVER_URL + "/assets/touch.png",
+              buttons: [
+                {
+                  type: "web_url",
+                  url: "https://www.oculus.com/en-us/touch/",
+                  title: "Open Web URL"
+                },
+                {
+                  type: "postback",
+                  title: "Call Postback",
+                  payload: "Payload for second bubble"
+                }
+              ]
+            }
+          ]
         }
       }
     }
@@ -762,13 +873,13 @@ function sendGenericMessage(recipientId) {
  */
 function sendReceiptMessage(recipientId) {
   // Generate a random receipt ID as the API requires a unique ID
-  var receiptId = "order" + Math.floor(Math.random()*1000);
+  var receiptId = "order" + Math.floor(Math.random() * 1000);
 
   var messageData = {
     recipient: {
       id: recipientId
     },
-    message:{
+    message: {
       attachment: {
         type: "template",
         payload: {
@@ -778,21 +889,24 @@ function sendReceiptMessage(recipientId) {
           currency: "USD",
           payment_method: "Visa 1234",
           timestamp: "1428444852",
-          elements: [{
-            title: "Oculus Rift",
-            subtitle: "Includes: headset, sensor, remote",
-            quantity: 1,
-            price: 599.00,
-            currency: "USD",
-            image_url: SERVER_URL + "/assets/riftsq.png"
-          }, {
-            title: "Samsung Gear VR",
-            subtitle: "Frost White",
-            quantity: 1,
-            price: 99.99,
-            currency: "USD",
-            image_url: SERVER_URL + "/assets/gearvrsq.png"
-          }],
+          elements: [
+            {
+              title: "Oculus Rift",
+              subtitle: "Includes: headset, sensor, remote",
+              quantity: 1,
+              price: 599.0,
+              currency: "USD",
+              image_url: SERVER_URL + "/assets/riftsq.png"
+            },
+            {
+              title: "Samsung Gear VR",
+              subtitle: "Frost White",
+              quantity: 1,
+              price: 99.99,
+              currency: "USD",
+              image_url: SERVER_URL + "/assets/gearvrsq.png"
+            }
+          ],
           address: {
             street_1: "1 Hacker Way",
             street_2: "",
@@ -803,17 +917,20 @@ function sendReceiptMessage(recipientId) {
           },
           summary: {
             subtotal: 698.99,
-            shipping_cost: 20.00,
+            shipping_cost: 20.0,
             total_tax: 57.67,
             total_cost: 626.66
           },
-          adjustments: [{
-            name: "New Customer Discount",
-            amount: -50
-          }, {
-            name: "$100 Off Coupon",
-            amount: -100
-          }]
+          adjustments: [
+            {
+              name: "New Customer Discount",
+              amount: -50
+            },
+            {
+              name: "$100 Off Coupon",
+              amount: -100
+            }
+          ]
         }
       }
     }
@@ -835,19 +952,19 @@ function sendQuickReply(recipientId) {
       text: "What's your favorite movie genre?",
       quick_replies: [
         {
-          "content_type":"text",
-          "title":"Action",
-          "payload":"DEVELOPER_DEFINED_PAYLOAD_FOR_PICKING_ACTION"
+          content_type: "text",
+          title: "Action",
+          payload: "DEVELOPER_DEFINED_PAYLOAD_FOR_PICKING_ACTION"
         },
         {
-          "content_type":"text",
-          "title":"Comedy",
-          "payload":"DEVELOPER_DEFINED_PAYLOAD_FOR_PICKING_COMEDY"
+          content_type: "text",
+          title: "Comedy",
+          payload: "DEVELOPER_DEFINED_PAYLOAD_FOR_PICKING_COMEDY"
         },
         {
-          "content_type":"text",
-          "title":"Drama",
-          "payload":"DEVELOPER_DEFINED_PAYLOAD_FOR_PICKING_DRAMA"
+          content_type: "text",
+          title: "Drama",
+          payload: "DEVELOPER_DEFINED_PAYLOAD_FOR_PICKING_DRAMA"
         }
       ]
     }
@@ -922,10 +1039,12 @@ function sendAccountLinking(recipientId) {
         payload: {
           template_type: "button",
           text: "Welcome. Link your account.",
-          buttons:[{
-            type: "account_link",
-            url: SERVER_URL + "/authorize"
-          }]
+          buttons: [
+            {
+              type: "account_link",
+              url: SERVER_URL + "/authorize"
+            }
+          ]
         }
       }
     }
@@ -940,35 +1059,47 @@ function sendAccountLinking(recipientId) {
  *
  */
 function callSendAPI(messageData) {
-  request({
-    uri: 'https://graph.facebook.com/v2.6/me/messages',
-    qs: { access_token: PAGE_ACCESS_TOKEN },
-    method: 'POST',
-    json: messageData
+  request(
+    {
+      uri: "https://graph.facebook.com/v2.6/me/messages",
+      qs: { access_token: PAGE_ACCESS_TOKEN },
+      method: "POST",
+      json: messageData
+    },
+    function(error, response, body) {
+      if (!error && response.statusCode == 200) {
+        var recipientId = body.recipient_id;
+        var messageId = body.message_id;
 
-  }, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
-      var recipientId = body.recipient_id;
-      var messageId = body.message_id;
-
-      if (messageId) {
-        console.log("Successfully sent message with id %s to recipient %s",
-          messageId, recipientId);
+        if (messageId) {
+          console.log(
+            "Successfully sent message with id %s to recipient %s",
+            messageId,
+            recipientId
+          );
+        } else {
+          console.log(
+            "Successfully called Send API for recipient %s",
+            recipientId
+          );
+        }
       } else {
-      console.log("Successfully called Send API for recipient %s",
-        recipientId);
+        console.error(
+          "Failed calling Send API",
+          response.statusCode,
+          response.statusMessage,
+          body.error
+        );
       }
-    } else {
-      console.error("Failed calling Send API", response.statusCode, response.statusMessage, body.error);
     }
-  });
+  );
 }
 
 // Start server
 // Webhooks must be available via SSL with a certificate signed by a valid
 // certificate authority.
-app.listen(app.get('port'), function() {
-  console.log('Node app is running on port', app.get('port'));
+app.listen(app.get("port"), function() {
+  console.log("Node app is running on port", app.get("port"));
 });
 
 module.exports = app;

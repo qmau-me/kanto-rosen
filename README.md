@@ -1,35 +1,66 @@
-# Messenger Platform Sample -- node.js
-
-This project is an example server for Messenger Platform built in Node.js. With this app, you can send it messages and it will echo them back to you. You can also see examples of the different types of Structured Messages. 
-
-It contains the following functionality:
-
-* Webhook (specifically for Messenger Platform events)
-* Send API 
-* Web Plugins
-* Messenger Platform v1.1 features
-
-Follow the [walk-through](https://developers.facebook.com/docs/messenger-platform/quickstart) to learn about this project in more detail.
+# Kanto train info chatbot
+Simple chatbot for grabbing Kanto train information using facebook messenger platform.
 
 ## Setup
+### Node.js
+```shell
+curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo apt-get install -y build-essential
+```
+### Mongodb
+```shell
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list
+sudo apt-get update
+sudo apt-get install -y mongodb-org
+```
+### Facebook messenger Platform
+- Create a [facebook page](https://www.facebook.com/pages/creation/)
+- Create a [facebook application](https://developers.facebook.com/apps/)
+- Add Messenger product to the application
+- Generate a page access token for the application
 
-Set the values in `config/default.json` before running the sample. Descriptions of each parameter can be found in `app.js`. Alternatively, you can set the corresponding environment variables as defined in `app.js`.
+![pat](public/assets/pat.png)
 
-Replace values for `APP_ID` and `PAGE_ID` in `public/index.html`.
+### Project setup
+- Clone this project
+
+```shell
+git clone https://github.com/qmau-me/kanto-rosen.git
+```
+- Set the `appSecret` and `pageAccessToken` in `config/default.json` with page access token and app secret from application admin dashboard.
+
+![token](public/assets/token.png)
+
+- Set a `validationToken` for webhook validation.
+- Replace values for `APP_ID` and `PAGE_ID` in `public/index.html`.
 
 ## Run
+- Run the project
+```shell
+npm install
+node app.js
+```
+- Start MongoDB
+```shell
+sudo service start mongod
+```
+- [Follow those steps](https://ngrok.com/download) to use ngrok setting up an reachable endpoint for the Facebook messenger.
+- Config webhook endpoint with https link from the ngrok terminal
+```
+ngrok http 5000
+```
+![ngrok](public/assets/ngrok.png)
+![webhook](public/assets/webhook.png)
+- Subscribed to created page
+- Enjoy the chatbot on messenger page
+<iframe src='https://gfycat.com/ifr/SmartOrdinaryBluebreastedkookaburra' frameborder='0' scrolling='no' allowfullscreen width='640' height='893'></iframe><p> <a href="https://gfycat.com/gifs/detail/SmartOrdinaryBluebreastedkookaburra">via Gfycat</a></p>
 
-You can start the server by running `npm start`. However, the webhook must be at a public URL that the Facebook servers can reach. Therefore, running the server locally on your machine will not work.
-
-You can run this example on a cloud service provider like Heroku, Google Cloud Platform or AWS. Note that webhooks must have a valid SSL certificate, signed by a certificate authority. Read more about setting up SSL for a [Webhook](https://developers.facebook.com/docs/graph-api/webhooks#setup).
-
-## Webhook
-
-All webhook code is in `app.js`. It is routed to `/webhook`. This project handles callbacks for authentication, messages, delivery confirmation and postbacks. More details are available at the [reference docs](https://developers.facebook.com/docs/messenger-platform/webhook-reference).
-
-## "Send to Messenger" and "Message Us" Plugin
-
-An example of the "Send to Messenger" plugin and "Message Us" plugin are located at `index.html`. The "Send to Messenger" plugin can be used to trigger an authentication event. More details are available at the [reference docs](https://developers.facebook.com/docs/messenger-platform/plugin-reference).
+## Command list
+- help: show all chatbot options
+    - list: list all subscribed line
+    - unsub: chose to delete a line from the subscribed line list
 
 ## License
 
