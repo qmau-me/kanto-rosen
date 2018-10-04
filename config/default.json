@@ -1,6 +1,6 @@
 {
-    "appSecret": "663719a4c4b8ab6f47fcedfb8f8de48e",
-    "pageAccessToken": "EAAXUkncihL0BAGZAoKh5vQRHqwLfCTrOnHtAyvtVRtVqYkHbfZAvZCAwUXUIpScef6HD5AZCKmn3NFJ0EyZAyGpngjOanKEt3NDxBiO8hAX7rFWinhC4Fhc7397QttJakniYd5da15O7PocHT0oPqtckKWWT4yYgdumZBgfcG5YQZDZD",
+    "appSecret": "yourapp",
+    "pageAccessToken": "yourpagetoken",
     "validationToken": "TOKEN",
     "serverURL": "to_be_set_manually"
 }
