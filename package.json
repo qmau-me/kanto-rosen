@@ -27,8 +27,10 @@
     "hoek": "5.0.3",
     "bson": "1.0.5",
     "cryptiles": "4.1.2",
-    "lodash": "4.17.5",
-    "sshpk": "1.13.2"
+    "lodash": ">=4.17.13",
+    "sshpk": "1.13.2",
+    "extend": ">=3.0.2",
+    "stringstream": ">=0.0.6"
   },
   "engines": {
     "node": "~4.1.2"
